@@ -27,10 +27,10 @@
 <ul style="list-style-type:disc">
 <li><a href="https://github.com/jgill22/computing/blob/master/install.mac4_.txt">Turning Your Mac Into a Scientific Workstation</a>. Some links and steps for making your OS X machine a serious workstation for research. Jake Bowers and I have collected these resources with additions from Chris Zorn, Michael Herron, and Andrew Martin. Additional suggestions welcome.</li>
 </ul>
-<b>TeX and LaTeX</b>
+<b>TeX and LaTeX</b><br>
 I get a reasonable number of queries about using the TeX typesetting program. Basically MS-Word is lame, and the idea of using WYSIWYG is incompatible with scientific communication. Conversely, the LaTeX program is ideally suited to the way we work. Actually I haven't seriously used a wordprocessor since about 1991. Some grad students are put off by the TeX world, which initially seems to be dominated by European academics with too much time on their hands and a weird fixation for animal drawings. The truth is that these are incredibly powerful tools for assembling perfectly typeset documents. The important thing is to get over the initial difference in using a typesetting program instead of a wordprocessor. Here are some links to get one started.
 <ul style="list-style-type:disc">
-<li>The Not-So Short Introduction to LaTeX. A high quality free introduction for new users.</li>
-<li>The LaTeX Companion. Almost everyone eventually buys this. Do it early and get more benefits.</li>
-<li>CTAN. The Comprehensive TeX Archive Network.</li>
+<li><a href="https://github.com/jgill22/computing/blob/master/lshort.pdf">The Not-So Short Introduction to LaTeX</a>. A high quality free introduction for new users.</li>
+<li><a href="https://www.amazon.com/LaTeX-Companion-Techniques-Computer-Typesetting/dp/0201362996/ref=sr_1_1/002-1116910-3882468?ie=UTF8&s=books&qid=1182317941&sr=8-1">The LaTeX Companion</a>. Almost everyone eventually buys this. Do it early and get more benefits.</li>
+  <li><a href="https://ctan.org/">CTAN</a>. The Comprehensive TeX Archive Network.</li>
 </ul>
