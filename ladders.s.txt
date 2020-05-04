@@ -1,0 +1,83 @@
+
+#Fourth version of objective function - this one uses the normal cdf.
+#This is the first ladder 
+
+#---------------------initial values---------------------------------------------------
+acc<-10^(-100)		                #Bound on size of objective function
+nC<-3			                #Number of Candidates
+nV<-dim(anes.2000b)[1]			#Number of Voters
+nI<-dim(anes.2000b)[2]			#Number of Issues
+Delta<-.1		                #The variance of E
+Voter<- anes.2000b[1:nV,]		#array(0,c(nV,nI));
+Cand<-array(0,c(nC,nI))
+Cand[1,]<-c(1,2,3,4,1,2,3,4,1,2)	#Cavg	#Candidate 1 Starting Placement on Issues-
+Cand[2,]<-c(2,4,3,3,3,4,3,1,1,2)	#Candidate 2 Placement on Issues - Gore
+Cand[3,]<-c(6,4,4,5,3,2,3,3,1,3)	#Candidate 2 Placement on Issues - Bush
+Cavg<-apply(Voter,2,mean)		#mean of voters
+
+
+#-----------------Initial values for Iterations----------------------------------
+nsim<-500;Cmove<-array(0,c(nsim,nI));CObj<-array(0,c(nsim,1))
+lastclass<-Cand[1,]
+steps<-1;bot<-.1;top<-.25;
+
+
+#-----------------Iterations-----------------------------------------------------
+OBold<-ObjFun3(Voter,Cand,Delta)
+for(i in 1:nsim)  {
+    Cold<-Cand[1,]
+    Next<-Ladder2(Voter,Cand,Delta,lastclass,OBold,steps,bot,top)
+    Cand[1,]<-Next$last;test<-Next$obj;OBtest<-Next$obnew
+    if(runif(1)<min(1,test)) {OBold<-OBtest} 
+    else {Cand[1,]<-Cold;OBtest<-OBold}
+    Cmove[i,]<-Cand[1,];CObj[i]<-OBtest
+    if(OBtest>acc){lastclass<-Cmove[i,]} else {lastclass<-Cavg}
+}
+
+
+#--------------------------------------------------------------------------------------------
+#ObjFun3(Voter,Cand,Delta)
+#--------------------------------------------------------------------------------------------
+#The Objective Function 3
+#v=voter matrix, each row a voter
+#c=candidate matrix, each row a candidate
+#h=cutoff vector, y=exponential rvs, d=variance
+
+ObjFun3 <-function(v,c,d)  {
+    #v<-Voter;c<-Cand;d<-Delta
+    nv<-dim(v)[1];nc<-dim(c)[1];h<-array(0,c(nv,(nc-1)));d2<-sqrt(d);
+    for(i in 1:nv){for(j in 2:nc){h[i,j-1]<--sum((v[i,]-c[1,])^2)+sum((v[i,]-c[j,])^2)}}
+    temp1<-0
+    for(i in 1:nv)  {
+        temp2<-1
+        for(j in 1:(nc-1))  {
+            temp2<-temp2*(pnorm(h[i,j],sd=d2))
+        }
+        temp1<-temp1+temp2
+    }
+    return(temp1)
+}
+
+
+#--------------------------------------------------------------------------------------------
+#The Ladder
+#The steps are a normal random walk 
+#bot to top in steps
+
+Ladder2 <-function(v,c,d,startclass,obold,steps,bot,top)  {
+    #steps<-4;bot<-.25;top<-3;startclass<-lastclass;obold<-OBold
+    #v<-Voter;c<-Cand;d<-Delta
+    ni<-dim(v)[2];c[1,]<-startclass;obj<-1
+    for(i in 1:(steps+1))  {
+        c[1,]<-c[1,]+(bot+(i-1)*((top-bot))/steps)*rnorm(ni)		#Up
+        obnew<-ObjFun3(v,c,d);obj<-obj*exp(obnew-obold);obold<-obnew
+    }	
+    for(i in 1:steps)  {
+        c[1,]<-c[1,]+(top-i*((top-bot)/steps))*rnorm(ni)			#Down
+        obnew<-ObjFun3(v,c,d);obj<-obj*exp(obnew-obold);obold<-obnew
+    }		
+    last<-c[1,]
+    return(last,obj,obnew)
+}
+
+

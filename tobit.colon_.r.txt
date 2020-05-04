@@ -1,0 +1,197 @@
+##################################################################################################
+# A FUNCTION TO GENERATE RANDOM MULTIVARIATE GAUSSIANS
+##################################################################################################
+
+rmultinorm <- function(num.vals, mu.vec, vcmat, tol = 1e-08)  {
+    k <- ncol(vcmat)
+    if(length(mu.vec)!=k)
+        stop(paste("rmultinorm error: rmultinorm: mu.vec vector wrong length:",length(mu.vec)))
+    if(max(abs(vcmat - t(vcmat))) > tol)
+        stop("rmultinorm error: variance-covariance matrix not symmetric")
+    vs <- svd(vcmat)
+    vcsqrt <- t(vs$v %*% (t(vs$u) * sqrt(vs$d)))
+    ans.mat <- sweep(matrix(rnorm(num.vals*k), nrow = num.vals) %*% vcsqrt,2,mu.vec,"+")
+    dimnames(ans.mat) <- list(NULL, dimnames(vcmat)[[2]])
+    return(ans.mat)
+}
+
+##################################################################################################
+# a function to generate random multivariate Gaussians
+##################################################################################################
+
+make.symmetric <- function(in.mat)  {
+         for (i in 1:nrow(in.mat))
+                 for (j in 1:ncol(in.mat))
+                         if (i > j) in.mat[i,j] <- in.mat[j,i]
+         return(in.mat)
+}
+
+##################################################################################################
+# SETUP DATA, HYPERPARAMETERS AND START VALUES
+##################################################################################################
+
+library(msm)                            # FOR THE TRUNCATED NORMAL GENERATOR: rtnorm
+library(foreign)                        # TO IMPORT THE STATA FILE
+library(survival)                       # FOR THE survreg FUNCTION
+library(LearnBayes)			# FOR THE rigamma FUNCTION
+colon <- read.table("http://jgill.wustl.edu/data/colon.dat")
+colon.na <- colon[is.na(colon[,9]) == TRUE,]
+dim(colon.na)
+colon.node4 <- colon[colon[,14] == 1,]
+dim(colon.node4)
+library(mice)
+colon.temp <- colon.node4[,c(3:8,10:16)]
+colon.imp <- mice(colon.temp,1)
+colon.complete <- complete(colon.imp,1)
+colon.df <- data.frame(colon.complete,"nodes"=colon.node4$nodes)
+
+colon2.df <- colon.df[colon.df$time < 365,]
+
+##################################################################################################
+# RUN A STANDARD OLS AND A TOBIT MODEL TO GUAGE DIFFERENCE IN IGNORING MISSING CASES
+##################################################################################################
+
+# MODEL B1
+colon.ols <- lm(nodes ~ rx + sex + age + obstruct + differ + extent + surg + rx:age + sex:surg,
+	data=colon2.df,na.action="na.omit")
+summary(colon.ols)
+           Estimate Std. Error t value Pr(>|t|)
+(Intercept)  -3.6713     2.8600   -1.28  0.19990
+rx            3.8855     1.0736    3.62  0.00033
+sex          -0.4655     0.4302   -1.08  0.27978
+age           0.1281     0.0381    3.36  0.00084
+obstruct     -1.0832     0.4899   -2.21  0.02753
+differ        0.5064     0.3564    1.42  0.15604
+extent        1.4488     0.5220    2.78  0.00573
+surg         -1.4976     0.5900   -2.54  0.01146
+rx:age       -0.0702     0.0183   -3.83  0.00014
+sex:surg      1.7816     0.8776    2.03  0.04292
+
+Residual standard error: 4.03 on 466 degrees of freedom
+  (34 observations deleted due to missingness)
+Multiple R-squared: 0.0706,	Adjusted R-squared: 0.0526 
+F-statistic: 3.93 on 9 and 466 DF,  p-value: 7.76e-05 
+
+colon.df$nodes[is.na(colon.df$nodes) == TRUE] <- 0
+colon.tob <- survreg(Surv(nodes,nodes>0,type='left') ~ 
+		rx + sex + age + obstruct + differ + extent + surg + rx:age
+                   + sex:surg, dist='gaussian',data=colon.df)
+summary(colon.tob)
+              Value Std. Error       z       p
+(Intercept) -0.1998     3.1422 -0.0636 0.94930
+rx           2.6743     1.1657  2.2942 0.02178
+sex         -0.4320     0.4830 -0.8943 0.37115
+age          0.0955     0.0428  2.2294 0.02578
+obstruct    -1.2093     0.5439 -2.2234 0.02619
+differ       0.5900     0.3939  1.4978 0.13419
+extent       0.8776     0.5543  1.5833 0.11336
+surg        -1.8477     0.6576 -2.8098 0.00496
+rx:age      -0.0549     0.0199 -2.7651 0.00569
+sex:surg     1.6559     0.9749  1.6984 0.08942
+Log(scale)   1.5334     0.0330 46.4065 0.00000
+
+Scale= 4.63 
+
+Gaussian distribution
+Loglik(model)= -1448.8   Loglik(intercept only)= -1462.1
+	Chisq= 26.75 on 9 degrees of freedom, p= 0.0015 
+Number of Newton-Raphson Iterations: 3 
+
+##################################################################################################
+# SETUP DATA STRUCTURES FOR GIBBS
+##################################################################################################
+
+Y <- c(colon.df$nodes);  num.zeros <- 34
+X <- cbind(rep(1,nrow(colon.df)), colon.df$rx, colon.df$sex, colon.df$age, colon.df$obstruct, 
+	colon.df$differ, colon.df$extent, colon.df$surg, colon.df$rx* colon.df$age,
+	colon.df$sex*colon.df$surg)
+dimnames(X)[[2]] <- c("(Intercept)","rx","sex","age","obstruct","differ","extent","surg","rx:age","sex:surg")
+
+##################################################################################################
+# SET PARAMATERS FOR GIBBS
+##################################################################################################
+
+beta0 <- colon.ols$coef						# BETA PRIORS FROM OLS
+gamma0 <- 3; gamma1 <- 1 					# HYPERPARAMETERS
+B0 <- 0.2 							# SCALING ON SIGMA^0
+mc.start <- 1; mc.stop <- 50000					# MCMC CONTROL
+colon2.tob <- survreg(Surv(Y,Y>0,type='left') ~ X[,-1], dist='gaussian')
+B.mat  <- matrix(summary(colon2.tob)$coef,nrow=1)		# STARTING POINTS
+B.mat[1,] <- jitter(B.mat[1,],20)				# ALTER VALUES FOR GR DIAGNOSTIC
+s.sq <- rep(1,mc.stop)
+Z <- Y								# LATENT DATA START
+
+##################################################################################################
+# GIBBS SAMPLER
+##################################################################################################
+
+for (i in mc.start:mc.stop)  {
+    for (j in 1:length(Y)) 
+        if (Y[j] == 0)  Z[j] <- rtnorm(1,X[j,]%*%B.mat[i,],s.sq[i],lower=-Inf,upper=0);
+    delta <- t(Z - X %*% B.mat[i,]) %*% (Z - X %*% B.mat[i,]);
+    s.sq[i] <- rigamma(1, (gamma0+length(Y))/2, (gamma1+delta)/2 );
+    B.hat <- solve( B0 + t(X)%*%X ) %*% (B0*beta0 + t(X)%*%Z);
+    B.var <-  make.symmetric( solve( (1/s.sq[i])*B0 + (1/s.sq[i])*t(X)%*%X ) );
+    B.mat <- rbind( B.mat, rmultinorm(1,B.hat,B.var,tol=1e-06) );
+    if (i %% 100 == 0)  print(paste("iteration:",i));
+}
+
+##################################################################################################
+# RESULTS
+##################################################################################################
+
+B.mat1 <- B.mat[40001:50000,]	# TAKE ONLY THE LAST 1000 DRAWS OF 50000
+B.mat1.mcmc <- mcmc(B.mat1)
+write.table(B.mat1,"Class.Bayes/tobit1.out.jan5",sep=" ")
+
+B.mat2 <- B.mat[40001:50000,]	# TAKE ONLY THE LAST 1000 DRAWS OF 50000
+cbind(round(apply(B.mat2,2,mean),4), round(apply(B.mat2,2,sd),4))
+B.mat2.mcmc <- mcmc(B.mat2)
+write.table(B.mat2,"Class.Bayes/tobit.out2.jan5",sep=" ")
+
+tobit.list <- list(B.mat1.mcmc,B.mat2.mcmc)
+tobit.mcmc <- as.mcmc.list(tobit.list)
+superdiag(tobit.mcmc,burnin=0)
+
+
+
+tobit.df <- read.table("Class.Bayes/tobit.out2.jan5",sep=" ")
+cbind(round(apply(tobit.df,2,mean),4), round(apply(tobit.df,2,sd),4),
+      round(apply(tobit.df,2,mean) - 1.96*apply(tobit.df,2,sd),4),
+      round(apply(tobit.df,2,mean) + 1.96*apply(tobit.df,2,sd),4))
+
+
+
+# GRAPHS
+tob.marg <- cbind( apply(B.mat2,2,mean), apply(B.mat2,2,sd) )
+postscript("Class.Bayes/colon.marginals.ps")
+par(mfrow=c(2,5),mar=c(3,3,4,1),col.axis="white",col.lab="white",col.sub="white", col="white",bg="slategrey")
+for (i in 1:nrow(tob.marg))  {
+	x.range <- c( qnorm(0.005,tob.marg[i,1],tob.marg[i,2]), qnorm(0.995,tob.marg[i,1],tob.marg[i,2]) )
+	ruler <- seq(x.range[1],x.range[2],length=500)
+	y.range <- c( 0, max(dnorm(ruler,tob.marg[i,1],tob.marg[i,2])) )
+	plot(x.range,y.range,type="n")
+	for (j in 1:length(ruler))  {
+		if (tob.marg[i,1] > 0 & ruler[j] > 0)  {
+			segments(ruler[j],0,ruler[j],dnorm(ruler[j],tob.marg[i,1],tob.marg[i,2]),col="green")
+			mtext(side=3,outer=FALSE,cex=1.1,line=1.2,paste("p(",dimnames(tob.marg)[[1]][i],">0) = ",
+				round(1-pnorm(0,tob.marg[i,1],tob.marg[i,2]),3),sep=""))
+		}
+		if (tob.marg[i,1] < 0 & ruler[j] < 0)  {
+			segments(ruler[j],0,ruler[j],dnorm(ruler[j],tob.marg[i,1],tob.marg[i,2]),col="thistle")
+			mtext(side=3,outer=FALSE,cex=1.1,line=1.2,paste("p(",dimnames(tob.marg)[[1]][i],"<0) = ",
+				round(pnorm(0,tob.marg[i,1],tob.marg[i,2]),3),sep=""))
+		}
+	}
+}
+dev.off()
+
+
+
+
+
+
+
+
+
+

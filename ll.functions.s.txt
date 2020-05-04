@@ -1,0 +1,183 @@
+##################################################################################################
+# Various log.likelihood functions I use for simulation analysis
+##################################################################################################
+
+poisson.posterior.ll <- function(theta.vector,X)  {
+	Y <- X[,1]
+	X[,1] <- rep(1,nrow(X))
+        Y%*%X%*%theta.vector - sum(exp(X%*%theta.vector)) - sum(log(gamma(Y+1)))
+}
+
+logit.posterior.ll <- function(theta.vector,X)  {
+	Y <- X[,1]
+	X[,1] <- rep(1,nrow(X))
+        sum( -log(1+exp(-X%*%theta.vector))*Y - log(1+exp(X%*%theta.vector))*(1-Y) )
+}
+
+normal.posterior.ll <- function(coef.vector,X)  {
+	dimnames(coef.vector) <- NULL
+	Y <- X[,1]
+	X[,1] <- rep(1,nrow(X))
+	e <- Y - X%*%solve(t(X)%*%X)%*%t(X)%*%Y
+	sigma <- var(e)
+	return(- nrow(X)*(1/2)*log(2*pi) 
+	- nrow(X)*(1/2)*log(sigma)  
+	- (1/(2*sigma))*(t(Y-X%*%coef.vector)%*%(Y-X%*%coef.vector)) )
+}
+
+t.posterior.ll <- function(coef.vector,X,df)  {
+        Y <- X[,1]
+        X[,1] <- rep(1,nrow(X))
+        e <- Y - X%*%solve(t(X)%*%X)%*%t(X)%*%Y
+        sigma <- var(e)*(df-2)/(df)
+	d <- length(coef.vector)
+	return(log(gamma((df+d)/2)) - log(gamma(df/2)) - (d/2)*log(df) - (d/2)*log(pi) -
+	- 0.5*(log(sigma)) 
+	- ((df+d)/2*sigma)*log(1+(1/df)*(t(Y-X%*%coef.vector)%*%(Y-X%*%coef.vector)) ))
+}
+
+harvey.posterior.ll <- function(theta.vector,X,tol=1e-05)  {
+        Y <- X[,1]
+        X[,1] <- rep(1,nrow(X))
+        Xb <- (X%*%theta.vector[1:4])/(exp(X[,4]*theta.vector[5]))
+	h <- pnorm(Xb)
+	h[h<tol] <- tol
+	g <- 1-pnorm(Xb)
+	g[g<tol] <- tol
+        sum( log(h)*Y + log(g)*(1-Y) )
+}
+
+probit.posterior.ll <- function (theta.vector,X,tol = 1e-05) 
+{
+        Y <- X[,1]
+        X[,1] <- rep(1,nrow(X))
+        Xb <- X%*%theta.vector
+	h <- pnorm(Xb)
+	h[h<tol] <- tol
+	g <- 1-pnorm(Xb)
+	g[g<tol] <- tol
+        sum( log(h)*Y + log(g)*(1-Y) )
+}
+
+# TEST
+# temp <- rmultnorm(1,coef.florida$V1,gizmo.florida)
+# normal.posterior.ll(as.vector(temp),coef.florida$V1,gizmo.florida)
+# normal.posterior.ll(coef.florida$V1,coef.florida$V1,gizmo.florida)
+# t.posterior.ll(coef.florida$V1,coef.florida$V1,gizmo.florida,300)
+# harvey.posterior.ll(data.teaching,teaching.het.coefs)
+# probit.posterior.ll(data.teaching,teaching.probit$coefficients)
+# temp.vector <- c(2.12177403,0.08907721,4.87892236,1.72871817)
+# probit.posterior.ll(data.teaching,temp.vector)
+# temp.vector <- c(-49.82623,-67.36943, 35.00449,-18.85766,-10.91166)
+# harvey.posterior.ll(data.teaching,temp.vector)
+
+##################################################################################################
+
+
+##################################################################################################
+# Some useful functions that are not in the R core
+##################################################################################################
+
+logit <- function(Xb)  1/(1+exp(-Xb))
+
+inv.logit <- function(mu)  log(mu/(1-mu))
+
+det <- function(M) prod(diag(qr(M)$qr))*ifelse(nrow(M)%%2,1,-1)
+
+##################################################################################################
+
+##################################################################################################
+# CONDITIONAL LOGIT POSTERIOR FUNCTION FOR USE IN THE CONTOURPLOT MATRIX
+# A,B are the addresses, a,b are the values
+##################################################################################################
+
+logit.posterior.conditional <- function(a,b,A,B,in.mat,theta.vector)  {
+    if (A < B)  {
+	theta.vector <- theta.vector[-B]
+	theta.vector <- theta.vector[-A]
+	vectorB <- in.mat[,B]
+	vectorA <- in.mat[,A]
+	in.mat <- in.mat[,-B]		
+	in.mat <- in.mat[,-A]		
+    }
+    else  {
+	theta.vector <- theta.vector[-A]
+	theta.vector <- theta.vector[-B]
+	vectorA <- in.mat[,A]
+	vectorB <- in.mat[,B]
+	in.mat <- in.mat[,-A]		
+	in.mat <- in.mat[,-B]		
+    }
+    if(length(theta.vector) < 3)
+	Xb <- 1*theta.vector[1] + mean(in.mat[,2])*theta.vector[2]
+    else
+        Xb <- 1*theta.vector[1]+ 
+		apply(in.mat[,2:ncol(in.mat)],2,mean)%*% theta.vector[2:length(theta.vector)] 
+    names(Xb) <- NULL
+    Y <- in.mat[,1]
+    dens <- 0
+    for (j in 1:nrow(in.mat))  
+	dens <- dens + log( 1/(1+exp((2*Y[j]-1)*(-Xb-a*vectorA[j]-b*vectorB[j]))) )
+    dens
+}
+
+##################################################################################################
+# a function to generate random multivariate Gaussians
+##################################################################################################
+
+rmultinorm <- function(num.vals, mu.vec, vcmat, tol = 1e-08)  {
+    k <- ncol(vcmat)
+    if(length(mu.vec)!=k) 
+	stop(paste("rmultinorm error: rmultnorm: mu.vec vector wrong length:",length(mu.vec)))
+    if(max(abs(vcmat - t(vcmat))) > tol) 
+	stop("rmultinorm error: variance-covariance matrix not symmetric")
+    vs <- svd(vcmat)
+    vcsqrt <- t(vs$v %*% (t(vs$u) * sqrt(vs$d)))
+    ans.mat <- sweep(matrix(rnorm(num.vals*k), nrow = num.vals) %*% vcsqrt,2,mu.vec,"+")
+    dimnames(ans.mat) <- list(NULL, dimnames(vcmat)[[2]])
+    return(ans.mat)
+}
+
+##################################################################################################
+# and one to calc density values
+##################################################################################################
+
+dmultinorm <- function(xval,yval,mu.vector,sigma.matrix)  {
+        normalizer <- (2*pi*sigma.matrix[1,1]*sigma.matrix[2,2]*sqrt(1-sigma.matrix[1,2]^2))^(-1)
+        like <- exp(-(1/(2*(1-sigma.matrix[1,2]^2)))* (
+             ((xval-mu.vector[1])/sigma.matrix[1,1])^2
+             -2*sigma.matrix[1,2]*(((xval-mu.vector[1])/sigma.matrix[1,1])*((yval-mu.vector[2])/sigma.matrix[2,2]))
+             + ((yval-mu.vector[2])/sigma.matrix[2,2])^2 ) )
+
+        pdf.out <- normalizer * like
+        return(pdf.out)
+}
+
+##################################################################################################
+# Modification of Venebles and Ripley function to get the variance/covariance mat from glm object
+##################################################################################################
+
+glm.vc <- function(obj)  { summary(obj)$dispersion * summary(obj)$cov.unscaled }
+
+##################################################################################################
+# a simple function to norm vectors
+##################################################################################################
+
+norm <- function(obj)  { (obj - mean(obj))/sqrt(var(obj)) }
+
+##################################################################################################
+# A function to give CI tabulated results for GLMs
+##################################################################################################
+
+glm.summary <- function (in.object, alpha = 0.05) 
+{
+        lo <- in.object$coefficient - qnorm(1-alpha/2) * 
+		diag(chol(summary(in.object)$cov.unscaled))
+        hi <- in.object$coefficient + qnorm(1-alpha/2) * 
+		diag(chol(summary(in.object)$cov.unscaled))
+        out.mat <- round(cbind(in.object$coefficient, sqrt(diag(glm.vc(in.object))), lo, hi),5)
+	dimnames(out.mat)[[2]] <- c("Coefficient","Std. Error",
+		paste(1-alpha,"CI Lower"),paste(1-alpha,"CI Upper"))
+	out.mat
+}
+

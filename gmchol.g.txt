@@ -1,0 +1,74 @@
+\*********************************************************************************/
+\* This is the Gill/Murray cholesky routine.  Reference:		         */  
+\*										 */
+\* Gill, Jeff and Gary King. ``What to do When Your Hessian is Not Invertible:   */
+\* Alternatives to Model Respecification in Nonlinear Estimation,'' Sociological */
+\* Methods and Research, Vol. 32, No. 1 (2004): Pp. 54--87. 		         */
+\*										 */
+\* Abstract									 */
+\* 									         */
+\* What should a researcher do when statistical analysis software terminates 	 */
+\* before completion with a message that the Hessian is not invertable? The 	 */
+\* standard textbook advice is to respecify the model, but this is another way 	 */
+\* of saying that the researcher should change the question being asked. 	 */
+\* Obviously, however, computer programs should not be in the business of 	 */
+\* deciding what questions are worthy of study. Although noninvertable 		 */
+\* Hessians are sometimes signals of poorly posed questions, nonsensical 	 */
+\* models, or inappropriate estimators, they also frequently occur when 	 */
+\* information about the quantities of interest exists in the data, through 	 */
+\* the likelihood function. We explain the problem in some detail and lay out 	 */
+\* two preliminary proposals for ways of dealing with noninvertable Hessians 	 */
+\* without changing the question asked. 					 */
+\* 										 */
+\* Also available is the software to implement the procedure described in this 	 */
+\* paper in R format.    							 */
+\*********************************************************************************/
+
+proc gmchol(A);
+   /* calculates the Gill-Murray generalized choleski decomposition */
+   /* input matrix A must be non-singular and symmetric */
+   /* Author: Jeff Gill. Part of the Hessian Project. */
+   local i,j,k,n,sum,R,theta_j,norm_A,phi_j,delta,xi_j,gamm,E,beta_j;
+   n = rows(A);
+   R = eye(n);
+   E = zeros(n,n);
+   norm_A = maxc(sumc(abs(A)));
+   gamm = maxc(abs(diag(A))); 
+   delta = maxc(maxc(__macheps*norm_A~__macheps));
+   for j (1, n, 1); 
+      theta_j = 0;
+      for i (1, n, 1);
+	 sum = 0;
+	 for k (1, (i-1), 1);	
+	    sum = sum + R[k,i]*R[k,j];
+	 endfor;
+	 R[i,j] = (A[i,j] - sum)/R[i,i];
+	 if (A[i,j] -sum) > theta_j;
+	    theta_j = A[i,j] - sum;
+         endif;
+	 if i > j;
+	    R[i,j] = 0;
+         endif;
+      endfor;
+      sum = 0;
+      for k (1, (j-1), 1);	
+         sum = sum + R[k,j]^2;
+      endfor;
+      phi_j = A[j,j] - sum;
+      if (j+1) <= n;
+         xi_j = maxc(abs(A[(j+1):n,j]));
+      else;
+         xi_j = maxc(abs(A[n,j]));
+      endif;
+      beta_j = sqrt(maxc(maxc(gamm~(xi_j/n)~__macheps)));
+      if delta >= maxc(abs(phi_j)~((theta_j^2)/(beta_j^2)));
+	 E[j,j] = delta - phi_j;
+      elseif abs(phi_j) >= maxc(((delta^2)/(beta_j^2))~delta);
+	 E[j,j] = abs(phi_j) - phi_j;
+      elseif ((theta_j^2)/(beta_j^2)) >= maxc(delta~abs(phi_j));
+	 E[j,j] = ((theta_j^2)/(beta_j^2)) - phi_j;
+      endif;
+      R[j,j] = sqrt(A[j,j] - sum + E[j,j]);
+   endfor;
+   retp(R'R);
+endp;

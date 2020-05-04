@@ -1,0 +1,48 @@
+
+# This function uses qr decomposition with jackknifing to get 
+# the externalized residuals.
+gsrls.t <- function(in.mat,W)  {
+   X <- sqrt(W)%*%(cbind(Intercept=1,in.mat[,1:ncol(in.mat)-1]))
+   Y <- s.i.jack <- t.i.jack <- as.vector(sqrt(W)%*%in.mat[,ncol(in.mat)])
+   H <- hat(X)
+   R <- qr.resid(qr(X),Y)
+   for(i in 1:nrow(in.mat))  {
+      R.jack <- qr.resid(qr(X[-i,]),Y[-i])
+      s.i.jack[i] <- sqrt( (1-H[i])*(t(R.jack)%*%R.jack)/(nrow(X)-1-ncol(X)-1) )
+      t.i.jack[i] <- R[i]/(s.i.jack[i]*sqrt(1-H[i]))
+   }
+   return(t.i.jack)
+}
+
+# this function returns the regression coefficients given a data 
+# matrix and weights
+gsrls.l <- function(in.mat,W)  {
+   X <- in.mat[,1:ncol(in.mat)-1]
+   Y <- in.mat[,ncol(in.mat)]
+   lm.out <- lm(Y ~ X, weights=diag(W))
+   return( summary(lm.out)$coefficients,RSQ=summary(lm.out)$r.squared,
+      F=summary(lm.out)$fstatistic, Std.Err=summary(lm.out)$sigma )
+}
+
+# This is the main function for gsrls, Input is an arbitrary size matrix: [X|Y], 
+# alpha, beta, and an operations flag.  Operations flag: 1 for optimizing, 2 for 
+# failure, 3 for risk averse.  Reweight=1 means GSRLS, anything else means SWLS
+gsrls3 <- function (in.mat, alpha = 0.48952, beta = 10, op.flag = 1, reweight = 1) 
+{
+            W <- diag(nrow(in.mat))
+            initial.results <- gsrls.l(in.mat, W)
+            threshold <- sqrt((alpha * (nrow(in.mat) - ncol(in.mat) - 1))/
+                (nrow(in.mat) - ncol(in.mat) - 2 + alpha))
+            for (i in 1:(beta - 1)) {
+                if ((reweight == 1) || (i == 1)) jack.resid <- gsrls.t(in.mat, W)
+                w <- rep(1, nrow(W))
+                if (op.flag == 1) w[jack.resid <  threshold] <- 1 - i * (1/beta)
+                if (op.flag == 2) w[jack.resid > -threshold] <- 1 - i * (1/beta)
+                if (op.flag == 3) w[jack.resid < -threshold] <- 1 - i * (1/beta)
+                diag(W) <- w
+                if (i == 1) start.unweighted <- sum(w[w == 1])
+            }
+            end.unweighted <- sum(w[w == 1])
+            list(gsrls.l(in.mat, W), start.unweighted = start.unweighted, 
+                    end.unweighted = end.unweighted, W = diag(W))
+}

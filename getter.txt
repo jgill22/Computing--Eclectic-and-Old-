@@ -1,0 +1,111 @@
+
+/************************************************************************************/
+/* NOTES:  1. THE DATA FILE SHOULD HAVE FIXED LINE LENGTH.			    */
+/*         2. THE PARAMETER LIST FILE MUST HAVE A SEPARATE LINE FOR EACH LOCATION   */
+/*	      AND LENGTH DESCRIPTION. EXAMPLE (ANES 1994):			    */
+/*		768 1								    */
+/*		1434 1								    */
+/*		1435 1								    */
+/*		70 2								    */
+/*		205 1								    */
+/* 	   3. COMMAND LINE IS: getter data.file parameterlist.file output.file      */
+/************************************************************************************/
+
+#include <stdio.h>
+#define BUFSIZE 1
+#define LINELEN 4000
+main(argc, argv)
+int argc;
+char *argv[];
+{
+	int f1, f2, f3, n, i, j;
+	int linesize = 0, counter = 0, numparams = 0;
+	int paramloc[512], paramsize[512];
+	char buf[BUFSIZE+1], c, temp[10], temp2[10], linebuf[LINELEN];
+	
+	if (argc != 4)
+		error("getter: You must stipulate input file and variable list");
+	if ((f1 = open(argv[1], 0)) == -1)
+		error("getter: Can't open %s", argv[1]);
+	if ((f2 = open(argv[2], 0)) == -1)
+		error("getter: Can't open %s", argv[2]);
+	if ((f3 = creat(argv[3], 0644)) == -1)
+		error("getter: Can't create %s",argv[2]);
+
+	/* READ THE PARAMETER LIST OF VARIABLE LOCATIONS AND SIZES */
+	while((n = read(f2,buf,BUFSIZE)) > 0 && buf[0] != EOF)
+	{
+		linebuf[linesize] = buf[0];
+		linesize++;
+		if (buf[0] == '\n')
+		{
+			i = 0;
+			while (linebuf[i] != ' ')
+			{
+				temp[i] = linebuf[i];
+				i++;
+			}
+			temp[i] = '\0';
+			i++;
+			paramloc[numparams] = atoi(temp);
+			j=0;
+			while (linebuf[i] != '\n')
+			{
+				temp2[j] = linebuf[i];
+				i++;
+				j++;
+			}
+			temp2[i] = '\0';
+			paramsize[numparams] = atoi(temp2);
+
+			numparams++;	
+			linebuf[linesize] = '\0';
+			linesize = 0;
+		}
+	}
+
+	/* PRINT OUT THE SEARCH PARAMETERS */
+	for (i=0;i< numparams; i++) 
+	{
+		printf("	paramloc: %d\t",paramloc[i]);
+		printf(" ");
+		printf("	paramsize: %d\t",paramsize[i]);
+		printf("\n");
+	}
+
+	/* READ THE INPUT FILE BY LINES */
+	while ((n = read(f1,buf,BUFSIZE)) > 0 && buf[0] != EOF)
+	{
+		linebuf[linesize] = buf[0];
+		linesize++;
+		if (buf[0] == '\n')
+		{
+			linebuf[linesize] = '\0';
+			temp[0] = ' ';
+			for(i=0; i<= numparams-1; i++)
+			{
+				for(j=paramloc[i]-1; j<paramloc[i]+paramsize[i]-1; j++)
+				{
+					if (write(f3, &linebuf[j], 1) != 1)
+						error("getter: Output write error 1", NULL);  
+				} 
+				if (write(f3, &temp[0], 1) != 1)
+					error("getter: Output write error 2", NULL);  
+			}
+			temp[0] = '\n';
+			if (write(f3, &temp[0], 1) != 1)
+				error("getter: Output write error 3", NULL);  
+			linesize = 0;
+		}
+	}
+	exit(0);
+}
+
+error(s1, s2)
+char *s1, *s2;
+{
+	printf(s1, s2);
+	printf("\n");
+	exit(1);
+}
+		
