@@ -18,16 +18,19 @@
 <li>C Language <a href="https://github.com/jgill22/computing/blob/master/getter.txt">Source Code</a> for Building Survey Subsets.</li>
 <li><a href="https://github.com/jgill22/computing/blob/master/gsrls.splus4_.txt">R Code</a> for GSRLS and SWLS Procedures.</li>
 <li><a href="https://github.com/jgill22/computing/blob/master/ll.functions.s.txt">R Code</a> for log-like functions (for simulations).</li>
-R Code generating multivariate normals.
-Gauss Code for the Gill-Murray generalized Cholesky Decomposition.
-Gauss Code for the Schnabel-Eskow generalized Cholesky Decomposition, R version, and Some R routines for checking/running..
-R Code for colon cancer data analysis.
-
-OS X
-Turning Your Mac Into a Scientific Workstation. Some links and steps for making your OS X machine a serious workstation for research. Jake Bowers and I have collected these resources with additions from Chris Zorn, Michael Herron, and Andrew Martin. Additional suggestions welcome.
-TeX and LaTeX
+<li><a href="https://github.com/jgill22/computing/blob/master/rmultnorm.s.txt">R Code</a> generating multivariate normals.</li>
+<li><a href="https://github.com/jgill22/computing/blob/master/gmchol.g.txt">Gauss Code</a> for the Gill-Murray generalized Cholesky Decomposition.</li>
+<li><a href="https://github.com/jgill22/computing/blob/master/sechol.g.txt">Gauss Code</a> for the Schnabel-Eskow generalized Cholesky Decomposition, R version, and Some R routines for checking/running.</li>
+<li><a href="https://github.com/jgill22/computing/blob/master/tobit.colon_.r.txt">R Code</a> for colon cancer data analysis.</li>
+</ul>
+<b>OS X</b>
+<ul style="list-style-type:disc">
+<li><a href="https://github.com/jgill22/computing/blob/master/install.mac4_.txt">Turning Your Mac Into a Scientific Workstation</a>. Some links and steps for making your OS X machine a serious workstation for research. Jake Bowers and I have collected these resources with additions from Chris Zorn, Michael Herron, and Andrew Martin. Additional suggestions welcome.</li>
+</ul>
+<b>TeX and LaTeX</b>
 I get a reasonable number of queries about using the TeX typesetting program. Basically MS-Word is lame, and the idea of using WYSIWYG is incompatible with scientific communication. Conversely, the LaTeX program is ideally suited to the way we work. Actually I haven't seriously used a wordprocessor since about 1991. Some grad students are put off by the TeX world, which initially seems to be dominated by European academics with too much time on their hands and a weird fixation for animal drawings. The truth is that these are incredibly powerful tools for assembling perfectly typeset documents. The important thing is to get over the initial difference in using a typesetting program instead of a wordprocessor. Here are some links to get one started.
-
-The Not-So Short Introduction to LaTeX. A high quality free introduction for new users.
-The LaTeX Companion. Almost everyone eventually buys this. Do it early and get more benefits.
-CTAN. The Comprehensive TeX Archive Network.
+<ul style="list-style-type:disc">
+<li>The Not-So Short Introduction to LaTeX. A high quality free introduction for new users.</li>
+<li>The LaTeX Companion. Almost everyone eventually buys this. Do it early and get more benefits.</li>
+<li>CTAN. The Comprehensive TeX Archive Network.</li>
+</ul>
