@@ -9,10 +9,10 @@
 
 <b>Authored Software</b>
   <ul style="list-style-type:disc">
-  <li><a href="https://cran.r-project.org/web/packages/GLMpack/index.html">GLMpack</a> Contains all the data and functions used in Generalized Linear Models, 2nd edition, by Jeff Gill and Michelle Torres. Examples to create all models, tables, and plots are included for each data set. (Jeff Gill, Michelle Torres, Simon Heuberger).</li>
+  <li><a href="https://cran.r-project.org/web/packages/GLMpack/index.html">GLMpack</a> Contains all the data and functions used in Generalized Linear Models, 2nd edition, by Jeff Gill and Michelle Torres. Examples to create all models, tables, and plots are included for each data set (Jeff Gill, Michelle Torres, Simon Heuberger).</li>
 <li><a href="https://cran.r-project.org/web/packages/krige/index.html">krige</a> Estimates kriging models for geographical point-referenced data (Jason S. Byers, Le Bao, Jamie Carson, Jeff Gill).</li>
-<li><a href="https://cran.r-project.org/web/packages/glmdm/index.html">glmdm</a> Performs generalized linear mixed Dirichlet models using posterior simulation. (Jeff Gill, George Casella, Minjung Kyung, and Jonathan Rapkin).</li>
-<li><a href="https://cran.r-project.org/web/packages/BaM/index.html">BaM</a> Functions and datasets for Jeff Gill: "Bayesian Methods: A Social and Behavioral Sciences Approach". First, Second, and Third Edition. (Jeff Gill).</li>
+<li><a href="https://cran.r-project.org/web/packages/glmdm/index.html">glmdm</a> Performs generalized linear mixed Dirichlet models using posterior simulation (Jeff Gill, George Casella, Minjung Kyung, and Jonathan Rapkin).</li>
+<li><a href="https://cran.r-project.org/web/packages/BaM/index.html">BaM</a> Functions and datasets for Jeff Gill: "Bayesian Methods: A Social and Behavioral Sciences Approach" First, Second, and Third Editions (Jeff Gill).</li>
    <li><a href="https://cran.r-project.org/web/packages/hot.deck/index.html">hot.deck</a> Performs multiple hot-deck imputation of categorical and continuous variables in a data frame (Skyler Cranmer, Jeff Gill, Natalie Jackson, Andreas Murr, Dave Armstrong).</li>
     <li><a href="https://cran.r-project.org/web/packages/superdiag/index.html">superdiag!</a> for producing four comprehensive MCMC convergence diagnostics with one short R command (Tsung-han Tsai, Jeff Gill, and Jonathan Rapkin).</li>
   <li>A <a href="https://github.com/jgill22/computing/blob/master/graph.summary.r.txt">function</a> for modern regression Summaries.</a></li>
